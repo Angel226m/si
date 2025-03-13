@@ -183,7 +183,7 @@ app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
 
   */
 
- require('dotenv').config();
+      require('dotenv').config();
 const express = require('express');
 const multer  = require('multer');
 const fs = require('fs');
@@ -192,27 +192,29 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 
-// Inicializa Firebase Admin leyendo las credenciales desde la variable de entorno
-// Asegúrate de que en Render tengas creada la variable FIREBASE_CREDENTIALS
-// y que su valor sea el contenido completo de tu archivo serviceAccountKey.json
+// Inicializa Firebase Admin usando las credenciales almacenadas en la variable de entorno FIREBASE_CREDENTIALS
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
-
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
 const app = express();
 
-// Middleware para parsear JSON
+// Middleware para parsear JSON (debe ir antes de las rutas)
 app.use(express.json());
 
-// Middleware CORS para todas las rutas
-app.use(cors());
+// Configuración de CORS: Permite el origen del frontend (puedes usar "*" para permitir cualquier origen, pero es más seguro especificar el dominio)
+const corsOptions = {
+  origin: "http://localhost:8080", // Cambia este valor al origen que necesites
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
 
-// Configura multer para almacenar archivos temporalmente en 'uploads'
+// Configura multer para almacenar archivos temporalmente en la carpeta 'uploads'
 const upload = multer({ dest: 'uploads/' });
 
-// Inicializa Backblaze B2 con tus credenciales
+// Inicializa Backblaze B2 con las credenciales de las variables de entorno
 const b2 = new B2({
   applicationKeyId: process.env.B2_APPLICATION_KEY_ID,
   applicationKey: process.env.B2_APPLICATION_KEY,
@@ -353,7 +355,7 @@ app.get('/download', async (req, res) => {
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,   // Ej.: tu-correo@gmail.com
+    user: process.env.EMAIL_USER,   // Ejemplo: tu-correo@gmail.com
     pass: process.env.EMAIL_PASS,   // Tu clave de aplicación
   },
 });
@@ -381,7 +383,6 @@ app.post('/send-notification', async (req, res) => {
 // Arranca el servidor usando el puerto asignado por Render o el 3000 en local
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
-
 
 /*
 require('dotenv').config();
