@@ -182,8 +182,7 @@ app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
 
 
   */
-
-      require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const multer  = require('multer');
 const fs = require('fs');
@@ -192,7 +191,7 @@ const cors = require('cors');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 
-// Inicializa Firebase Admin usando las credenciales almacenadas en la variable de entorno FIREBASE_CREDENTIALS
+// Inicializa Firebase Admin usando las credenciales de FIREBASE_CREDENTIALS
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -200,12 +199,12 @@ admin.initializeApp({
 
 const app = express();
 
-// Middleware para parsear JSON (debe ir antes de las rutas)
+// Middleware para parsear JSON (antes de definir rutas)
 app.use(express.json());
 
-// Configuración de CORS: Permite el origen del frontend (puedes usar "*" para permitir cualquier origen, pero es más seguro especificar el dominio)
+// Configuración de CORS (permite el origen de tu frontend, ej. http://localhost:8080)
 const corsOptions = {
-  origin: "http://localhost:8080", // Cambia este valor al origen que necesites
+  origin: "http://localhost:8080", // Cambia este valor según tus necesidades
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   optionsSuccessStatus: 204,
 };
@@ -214,7 +213,7 @@ app.use(cors(corsOptions));
 // Configura multer para almacenar archivos temporalmente en la carpeta 'uploads'
 const upload = multer({ dest: 'uploads/' });
 
-// Inicializa Backblaze B2 con las credenciales de las variables de entorno
+// Inicializa Backblaze B2 con las credenciales definidas en las variables de entorno
 const b2 = new B2({
   applicationKeyId: process.env.B2_APPLICATION_KEY_ID,
   applicationKey: process.env.B2_APPLICATION_KEY,
@@ -244,6 +243,7 @@ app.get('/folders', (req, res) => {
 });
 
 // ----- Endpoints para Archivos -----
+// Endpoint para subir archivos a Backblaze B2
 app.post('/upload', upload.single('archivo'), async (req, res) => {
   try {
     const uid = req.body.uid ? req.body.uid.trim() : "";
@@ -258,12 +258,12 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
     const filePath = req.file.path;
     const fileData = fs.readFileSync(filePath);
     const originalFileName = req.file.originalname;
-
     const carpeta = req.body.carpeta ? req.body.carpeta.trim() : "";
-    let refPath = "archivos/";
-    refPath += `${uid}/`;
+    
+    // Construye la ruta del archivo en el bucket
+    let refPath = "archivos/" + uid + "/";
     if (carpeta) {
-      refPath += `${carpeta}/`;
+      refPath += carpeta + "/";
     }
     refPath += originalFileName;
 
@@ -274,6 +274,7 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
       data: fileData,
     });
 
+    // Elimina el archivo temporal
     fs.unlinkSync(filePath);
 
     res.json({ success: true, data: { fileId: uploadResponse.data.fileId, fileName: refPath } });
@@ -283,6 +284,7 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
   }
 });
 
+// Endpoint para listar archivos
 app.get('/files', async (req, res) => {
   try {
     await b2.authorize();
@@ -290,7 +292,7 @@ app.get('/files', async (req, res) => {
     const uid = req.query.uid ? req.query.uid.trim() : "";
     let prefix = "archivos/";
     if (uid) {
-      prefix += `${uid}/`;
+      prefix += uid + "/";
     }
     const listResponse = await b2.listFileNames({
       bucketId,
@@ -304,6 +306,7 @@ app.get('/files', async (req, res) => {
   }
 });
 
+// Endpoint para eliminar un archivo
 app.delete('/file', async (req, res) => {
   try {
     const { fileId, fileName, uid } = req.query;
@@ -322,6 +325,7 @@ app.delete('/file', async (req, res) => {
   }
 });
 
+// Endpoint para generar URL de descarga de un archivo
 app.get('/download', async (req, res) => {
   const fileName = req.query.fileName;
   const uid = req.query.uid ? req.query.uid.trim() : "";
@@ -351,7 +355,7 @@ app.get('/download', async (req, res) => {
   }
 });
 
-// ----- Endpoint para Enviar Notificaciones por Correo -----
+// ----- Endpoint para enviar notificaciones por correo -----
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -380,9 +384,11 @@ app.post('/send-notification', async (req, res) => {
   }
 });
 
-// Arranca el servidor usando el puerto asignado por Render o el 3000 en local
+// Inicia el servidor en el puerto definido por la variable de entorno PORT o en el 3000 por defecto
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
+
+      
 
 /*
 require('dotenv').config();
