@@ -182,7 +182,8 @@ app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
 
 
   */
-  /*
+
+
   require('dotenv').config();
   const express = require('express');
   const multer  = require('multer');
@@ -375,10 +376,10 @@ app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
 
 
 
-*/
+ 
 
 
-
+/*
 require('dotenv').config();
 const express = require('express');
 const multer  = require('multer');
@@ -636,4 +637,4 @@ cron.schedule('* * * * *', checkUpcomingEvents);
 // -------------------------------------------------------------------------------------
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor corriendo en el puerto ${PORT}`));*/
