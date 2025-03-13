@@ -8,6 +8,7 @@ const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 
 // Inicializa Firebase Admin usando las credenciales en la variable de entorno
+// Asegúrate de que FIREBASE_CREDENTIALS contenga el JSON completo en una sola línea (o codificado en Base64, según prefieras)
 const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -15,7 +16,7 @@ admin.initializeApp({
 
 const app = express();
 
-// Middleware para parsear JSON (se debe colocar antes de las rutas)
+// Middleware para parsear JSON (se debe colocar antes de definir rutas)
 app.use(express.json());
 
 // Configuración de CORS (permite el origen de tu frontend, ej. http://localhost:8080)
@@ -67,23 +68,28 @@ app.post('/upload', upload.single('archivo'), async (req, res) => {
     if (!uid) {
       return res.status(400).json({ success: false, error: "UID requerido" });
     }
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No se ha enviado ningún archivo." });
+    }
+    // Autoriza y obtiene la URL de subida
     await b2.authorize();
     const bucketId = process.env.B2_BUCKET_ID;
     const uploadUrlResponse = await b2.getUploadUrl({ bucketId });
     const { uploadUrl, authorizationToken } = uploadUrlResponse.data;
 
+    // Lee el archivo y construye la ruta en el bucket: "archivos/{uid}/{carpeta}/{nombreArchivo}"
     const filePath = req.file.path;
     const fileData = fs.readFileSync(filePath);
     const originalFileName = req.file.originalname;
     const carpeta = req.body.carpeta ? req.body.carpeta.trim() : "";
     
-    // Construye la ruta del archivo en el bucket: "archivos/{uid}/{carpeta}/{nombreArchivo}"
     let refPath = "archivos/" + uid + "/";
     if (carpeta) {
       refPath += carpeta + "/";
     }
     refPath += originalFileName;
 
+    // Sube el archivo a Backblaze B2
     const uploadResponse = await b2.uploadFile({
       uploadUrl,
       uploadAuthToken: authorizationToken,
@@ -130,6 +136,7 @@ app.delete('/file', async (req, res) => {
     if (!fileId || !fileName || !uid) {
       return res.status(400).json({ success: false, error: "Se requiere fileId, fileName y uid" });
     }
+    // Verifica que el archivo pertenezca al usuario
     if (!fileName.startsWith(`archivos/${uid}/`)) {
       return res.status(403).json({ success: false, error: "No autorizado para eliminar este archivo" });
     }
